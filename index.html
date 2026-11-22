@@ -189,45 +189,27 @@ const S = { cloud:false, user:null, activities:[], journal:[], board:[], tab:'to
 let sb = null;
 
 /* ===== Stockage : local (démo) ou Supabase ===== */
-const LS_KEY = 'liferpg.demo.v1';
-let memStore = null;
-const lsGet = () => { try{ const r=localStorage.getItem(LS_KEY); if(r) return JSON.parse(r);}catch(e){} return memStore; };
-const lsSet = v => { memStore=v; try{ localStorage.setItem(LS_KEY,JSON.stringify(v)); }catch(e){} };
-
 const Store = {
-  async init(){
-    if(!S.cloud){
-      let d = lsGet();
-      if(!d){ d = { name:'Alix', activities:DEFAULT_ACTIVITIES.map(a=>({...a,id:uid()})),
-        journal:SEED_HISTORY.map(e=>({...e,id:uid()})) }; lsSet(d); }
-      S.user={id:'local',name:d.name}; S.activities=d.activities; S.journal=d.journal; return;
-    }
-  },
-  persist(){ if(!S.cloud) lsSet({name:S.user.name,activities:S.activities,journal:S.journal}); },
   async addEntry(e){
-    if(!S.cloud){ const row={...e,id:uid()}; S.journal.push(row); this.persist(); return row; }
     const {data,error}=await sb.from('journal').insert(e).select().single(); if(error) throw error; S.journal.push(data); return data;
   },
   async delEntry(id){
-    if(S.cloud){ const {error}=await sb.from('journal').delete().eq('id',id); if(error) throw error; }
-    S.journal=S.journal.filter(e=>e.id!==id); this.persist();
+    const {error}=await sb.from('journal').delete().eq('id',id); if(error) throw error;
+    S.journal=S.journal.filter(e=>e.id!==id);
   },
   async saveActivity(a){
-    if(!S.cloud){ if(a.id){ S.activities=S.activities.map(x=>x.id===a.id?a:x);} else { a.id=uid(); S.activities.push(a);} this.persist(); return; }
     const row={name:a.name,stat:a.stat,xp:a.xp,gold:a.gold,skill:a.skill,stat_xp:a.stat_xp,daily:a.daily,active:a.active};
     if(a.id){ const {error}=await sb.from('activities').update(row).eq('id',a.id); if(error) throw error; S.activities=S.activities.map(x=>x.id===a.id?{...a}:x); }
     else { const {data,error}=await sb.from('activities').insert(row).select().single(); if(error) throw error; S.activities.push(data); }
   },
   async delActivity(id){
-    if(S.cloud){ const {error}=await sb.from('activities').delete().eq('id',id); if(error) throw error; }
-    S.activities=S.activities.filter(x=>x.id!==id); this.persist();
+    const {error}=await sb.from('activities').delete().eq('id',id); if(error) throw error;
+    S.activities=S.activities.filter(x=>x.id!==id);
   },
   async importHistory(){
-    if(!S.cloud) return;
     const {data,error}=await sb.from('journal').insert(SEED_HISTORY.map(e=>({...e}))).select(); if(error) throw error;
     S.journal.push(...data);
   },
-  async resetDemo(){ try{localStorage.removeItem(LS_KEY);}catch(e){} memStore=null; await this.init(); },
 
   /* --- cloud --- */
   async fetchAll(table){
@@ -298,8 +280,7 @@ function viewToday(){
   const others=S.activities.filter(a=>a.active&&!a.daily);
   const doneN=quests.filter(doneToday).length;
   return `
-  <header class="top"><div><h1>Salut ${esc(S.user.name)}</h1><div class="date">${(d=>d[0].toUpperCase()+d.slice(1))(new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}))}</div></div>
-    ${S.cloud?'':'<span class="demo">Mode démo</span>'}</header>
+  <header class="top"><div><h1>Salut ${esc(S.user.name)}</h1><div class="date">${(d=>d[0].toUpperCase()+d.slice(1))(new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}))}</div></div></header>
   <section class="hero" aria-label="Progression">
     <div class="lvl num"><small>Niveau</small>${L.l}</div>
     <div class="meta"><div class="line num"><span>${t.xp-L.min} / ${L.next-L.min} XP</span><span><span class="coin"></span> ${t.gold} or</span></div>
@@ -354,8 +335,6 @@ function viewHero(){
 }
 
 function viewGuild(){
-  if(!S.cloud) return `<header class="top"><h1>Joueurs</h1></header>
-    <div class="card"><h3>Le classement apparaît avec Supabase</h3><p class="muted">Cette démo tourne sur ton téléphone seulement. Une fois l'appli reliée à ta base Supabase, chaque joueur crée son compte et voit ici le niveau, l'XP de la semaine et l'XP total de tout le monde. Le guide de mise en route explique les cinq étapes.</p></div>`;
   const key=S.boardMode==='week'?'week_xp':'xp';
   const rows=[...S.board].sort((a,b)=>(b[key]||0)-(a[key]||0));
   return `<header class="top"><h1>Joueurs</h1></header>
@@ -373,8 +352,8 @@ function viewActs(){
     <span class="grow"><span class="t">${esc(a.name)}</span><br><span class="s num">+${a.xp} XP · +${a.gold} or${a.stat?` · ${a.stat_xp} pts ${esc(a.stat)}`:''}</span></span>
     ${a.daily?'<span class="pill">Quotidienne</span>':''}${a.active?'':'<span class="pill gold">Masquée</span>'}</button>`).join('')}</div>
   <section class="section"><h2>Données</h2>
-    ${S.cloud&&!S.journal.length&&SEED_HISTORY.length?'<button class="btn ghost" data-act="import">Importer l\'historique de mon Google Sheet</button>':''}
-    ${S.cloud?'<button class="btn ghost" data-act="signout">Se déconnecter</button>':`<button class="btn danger ${S.confirmDel==='reset'?'confirm':''}" data-act="reset">${S.confirmDel==='reset'?'Confirmer la réinitialisation':'Réinitialiser la démo'}</button>`}
+    ${!S.journal.length&&SEED_HISTORY.length?'<button class="btn ghost" data-act="import">Importer l\'historique de mon Google Sheet</button>':''}
+    <button class="btn ghost" data-act="signout">Se déconnecter</button>
     <p class="muted" style="font-size:13px;margin:0">Les gains d'un jour passé restent fixés tels qu'ils étaient quand tu les as validés, même si tu modifies l'activité ensuite.</p></section>`;
 }
 
@@ -450,7 +429,6 @@ document.addEventListener('click', async ev=>{
     try{ await Store.saveActivity(a); S.sheet=null; render(); toast('Activité enregistrée'); }catch(e){ $('#e-err').textContent=e.message; }
   }
   else if(act==='delact'){ if(S.confirmDel===S.sheet.draft.id){ try{ await Store.delActivity(S.sheet.draft.id); }catch(e){ toast(e.message);} S.sheet=null; S.confirmDel=null; } else S.confirmDel=S.sheet.draft.id; render(); }
-  else if(act==='reset'){ if(S.confirmDel==='reset'){ S.confirmDel=null; await Store.resetDemo(); } else S.confirmDel='reset'; render(); }
   else if(act==='import'){ try{ await Store.importHistory(); await Store.loadBoard(); toast('Historique importé'); }catch(e){ toast('Erreur : '+e.message);} render(); }
   else if(act==='signout'){ await sb.auth.signOut(); S.user=null; S.journal=[]; S.activities=[]; render(); }
   else if(act==='authmode'){ S.auth={mode:S.auth.mode==='in'?'up':'in',err:'',info:'',busy:false}; render(); }
@@ -472,10 +450,11 @@ document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&S.cloud&
 
 /* ===== Démarrage ===== */
 (async function boot(){
-  S.cloud=!!(CONFIG.SUPABASE_URL&&CONFIG.SUPABASE_ANON_KEY&&window.supabase);
+  CONFIG.SUPABASE_URL=CONFIG.SUPABASE_URL.trim().replace(/\/(rest|auth)\/v1\/?$/,'').replace(/\/+$/,'');
+  S.cloud=true;
   try{
-    if(S.cloud){ sb=window.supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_ANON_KEY); await Store.loadCloud(); }
-    else await Store.init();
+    if(!window.supabase) throw new Error('le service est injoignable, vérifie ta connexion.');
+    sb=window.supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_ANON_KEY); await Store.loadCloud();
   }catch(e){ console.error(e); S.auth.err='Connexion impossible : '+(e.message||e); }
   S.loading=false; render();
   if('serviceWorker' in navigator && location.protocol.startsWith('http')){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
