@@ -20,10 +20,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
-/* ===== RÉGLAGES : colle ici les deux valeurs de ton projet Supabase (voir le guide) ===== */
 const CONFIG = { SUPABASE_URL: "https://ojxpfchmptlijvkkltzs.supabase.co", SUPABASE_ANON_KEY: "sb_publishable_AubvQcHVBLSKl2_wlUrEZA_Mz-lU9mf" };
 
-/* ===== Règles du jeu (reprises de ton Google Sheet) ===== */
 const STATS = [
   {n:'Force',i:'⚔️'},{n:'Intelligence',i:'🧠'},{n:'Discipline',i:'✅'},
   {n:'Créativité',i:'🖍️'},{n:'Charisme',i:'👑'},{n:'Sagesse',i:'🧘'}
@@ -31,16 +29,7 @@ const STATS = [
 const STREAK_CAP = 30;              // bonus de série : +1 XP par jour d'affilée, plafonné
 const lvl = xp => Math.floor(Math.pow(Math.max(xp,0)/100, 1/1.8));
 const minXp = n => n<=0 ? 0 : Math.ceil(100*Math.pow(n,1.8));
-const DEFAULT_ACTIVITIES = [
-  ['Cardio (20 min)','Force',40,5,'Fitness',30,0],['Crochet (1 heure)','Créativité',20,3,'Crochet',20,0],
-  ['Jeux de plateau','Intelligence',15,1,'Jeux',15,0],['Jeux Vidéo (1 heure)',null,10,0,'Jeux',0,0],
-  ['Lire 30 pages','Intelligence',25,2,'Lecture',20,1],['Méditation (5 min)','Sagesse',10,1,'Méditation',10,0],
-  ['Ménage (10 min)','Discipline',20,2,'Organisation',20,0],['Mots Fléchés','Intelligence',15,1,'Jeux',10,0],
-  ['Recherches (1 heure)','Intelligence',50,5,'Apprentissage',40,0],['Sortie','Charisme',50,7,'Sociabilité',50,0],
-  ['Tricot (1 heure)','Créativité',20,3,'Tricot',10,0],['Marche (5000 pas)','Force',20,5,'Marche',20,0],
-  ['Piano (30 min)','Créativité',30,5,'Piano',20,1],['Boire deux litres d\'eau',null,5,1,'',0,1]
-].map(a=>({name:a[0],stat:a[1],xp:a[2],gold:a[3],skill:a[4],stat_xp:a[5],daily:!!a[6],active:true}));
-const SEED_HISTORY = [{"day": "2026-09-26", "activity": "Piano (30 min)", "qty": 1, "xp": 30, "gold": 5, "bonus_xp": 0, "skill": "Piano", "stat": "Créativité", "stat_xp": 20}, {"day": "2026-09-26", "activity": "Piano (30 min)", "qty": 1, "xp": 30, "gold": 5, "bonus_xp": 0, "skill": "Piano", "stat": "Créativité", "stat_xp": 20}, {"day": "2026-09-28", "activity": "Tricot (1 heure)", "qty": 2, "xp": 40, "gold": 6, "bonus_xp": 0, "skill": "Tricot", "stat": "Créativité", "stat_xp": 20}, {"day": "2026-09-29", "activity": "Jeux Vidéo (1 heure)", "qty": 3, "xp": 30, "gold": 0, "bonus_xp": 0, "skill": "Jeux", "stat": null, "stat_xp": 0}, {"day": "2026-09-29", "activity": "Ménage (10 min)", "qty": 2, "xp": 40, "gold": 4, "bonus_xp": 0, "skill": "Organisation", "stat": "Discipline", "stat_xp": 40}, {"day": "2026-09-30", "activity": "Piano (30 min)", "qty": 2, "xp": 60, "gold": 10, "bonus_xp": 0, "skill": "Piano", "stat": "Créativité", "stat_xp": 40}, {"day": "2026-10-02", "activity": "Mots Fléchés", "qty": 2, "xp": 30, "gold": 2, "bonus_xp": 0, "skill": "Jeux", "stat": "Intelligence", "stat_xp": 20}, {"day": "2026-10-05", "activity": "Lire 30 pages", "qty": 1, "xp": 25, "gold": 2, "bonus_xp": 0, "skill": "Lecture", "stat": "Intelligence", "stat_xp": 20}, {"day": "2026-10-05", "activity": "Boire deux litres d'eau", "qty": 1, "xp": 5, "gold": 1, "bonus_xp": 0, "skill": null, "stat": null, "stat_xp": 0}, {"day": "2026-10-21", "activity": "Boire deux litres d'eau", "qty": 1, "xp": 5, "gold": 1, "bonus_xp": 0, "skill": null, "stat": null, "stat_xp": 0}, {"day": "2026-11-04", "activity": "Marche (5000 pas)", "qty": 2, "xp": 40, "gold": 10, "bonus_xp": 0, "skill": "Marche", "stat": "Force", "stat_xp": 40}, {"day": "2026-10-21", "activity": "Lire 30 pages", "qty": 1, "xp": 25, "gold": 2, "bonus_xp": 0, "skill": "Lecture", "stat": "Intelligence", "stat_xp": 20}, {"day": "2026-10-21", "activity": "Piano (30 min)", "qty": 1, "xp": 30, "gold": 5, "bonus_xp": 0, "skill": "Piano", "stat": "Créativité", "stat_xp": 20}, {"day": "2026-11-04", "activity": "Lire 30 pages", "qty": 2, "xp": 50, "gold": 4, "bonus_xp": 0, "skill": "Lecture", "stat": "Intelligence", "stat_xp": 40}];
+const SEED_HISTORY = [];
 
 /* ===== Utilitaires ===== */
 const $ = s => document.querySelector(s);
@@ -53,9 +42,13 @@ const fmtDay = d => { if(d===today())return "Aujourd'hui"; if(d===addDays(today(
   return new Date(d+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}); };
 
 /* ===== État ===== */
-const S = { cloud:false, user:null, activities:[], journal:[], board:[], tab:'today', boardMode:'week',
+const S = { cloud:true, user:null, activities:[], catalog:[], allDim:[], facts:[], journal:[], difficulties:[], board:[], tab:'today', boardMode:'week',
   sheet:null, auth:{mode:'in',err:'',info:'',busy:false}, confirmDel:null, loading:true };
+
 let sb = null;
+
+S.openGroups=new Set();
+try{ S.openGroups=new Set(JSON.parse(localStorage.getItem('liferpg.open')||'[]')); }catch(e){}
 
 /* ===== Stockage : local (démo) ou Supabase ===== */
 const Store = {
@@ -66,13 +59,20 @@ const Store = {
     const {error}=await sb.from('journal').delete().eq('id',id); if(error) throw error;
     S.journal=S.journal.filter(e=>e.id!==id);
   },
-  async saveActivity(a){
-    const row={name:a.name,stat:a.stat,xp:a.xp,gold:a.gold,skill:a.skill,stat_xp:a.stat_xp,daily:a.daily,active:a.active};
-    if(a.id){ const {error}=await sb.from('activities').update(row).eq('id',a.id); if(error) throw error; S.activities=S.activities.map(x=>x.id===a.id?{...a}:x); }
-    else { const {data,error}=await sb.from('activities').insert(row).select().single(); if(error) throw error; S.activities.push(data); }
+   async saveActivity(a){
+    const row={name:a.name,stat:a.stat,difficulty:a.difficulty};
+    let data;
+    if(a.id){
+      const r=await sb.from('activities_dim').update(row).eq('id',a.id).select().single(); if(r.error) throw r.error; data=r.data;
+      S.allDim=S.allDim.map(x=>x.id===data.id?data:x); S.catalog=S.catalog.map(x=>x.id===data.id?data:x);
+    } else {
+      const r=await sb.from('activities_dim').insert(row).select().single(); if(r.error) throw r.error; data=r.data;
+      S.allDim.push(data); S.catalog.push(data);
+    }
+    await this.setFlags({id:data.id},a.favorite,a.daily);
   },
   async delActivity(id){
-    const {error}=await sb.from('activities').delete().eq('id',id); if(error) throw error;
+    const {error}=await sb.from('activities_dim').delete().eq('id',id); if(error) throw error;
     S.activities=S.activities.filter(x=>x.id!==id);
   },
   async importHistory(){
@@ -80,7 +80,11 @@ const Store = {
     S.journal.push(...data);
   },
 
+  
+  
   /* --- cloud --- */
+
+  // Récupère toutes les lignes de supabase
   async fetchAll(table){
     let out=[],from=0; for(;;){ const {data,error}=await sb.from(table).select('*').order('created_at').range(from,from+999);
       if(error) throw error; out=out.concat(data); if(data.length<1000) break; from+=1000; } return out;
@@ -93,10 +97,30 @@ const Store = {
     if(!prof){ const name=(u.user_metadata&&u.user_metadata.name)||(u.email||'Joueur').split('@')[0];
       const r=await sb.from('profiles').insert({id:u.id,name}).select().single(); if(r.error) throw r.error; prof=r.data; }
     S.user={id:u.id,name:prof.name};
-    let acts=await this.fetchAll('activities');
-    if(!acts.length){ const r=await sb.from('activities').insert(DEFAULT_ACTIVITIES.map(a=>({...a}))).select(); if(r.error) throw r.error; acts=r.data; }
-    S.activities=acts; S.journal=await this.fetchAll('journal');
+    const [dim,facts]=await Promise.all([this.fetchAll('activities_dim'), this.fetchAll('activities_fact')]);
+    S.allDim=dim;
+    S.catalog=dim.filter(d=>!d.created_by||d.created_by===S.user.id);
+    S.facts=facts;
+    const {data:diffs}=await sb.from('difficulties').select('*').order('position'); S.difficulties=diffs||[];
+    this.buildActivities();
+    S.journal=await this.fetchAll('journal');
     await this.loadBoard();
+  },
+  buildActivities(){
+    const f=new Map(S.facts.map(x=>[x.activity_id,x]));
+    S.activities=S.catalog.map(d=>{ const x=f.get(d.id)||{};
+      return {...d, favorite:!!x.favorite, daily:!!x.daily, active:!!(x.favorite||x.daily)}; });
+  },
+  async setFlags(a,favorite,daily){
+    if(!favorite&&!daily){
+      const {error}=await sb.from('activities_fact').delete().eq('user_id',S.user.id).eq('activity_id',a.id); if(error) throw error;
+      S.facts=S.facts.filter(x=>x.activity_id!==a.id);
+    } else {
+      const row={user_id:S.user.id,activity_id:a.id,favorite,daily};
+      const {error}=await sb.from('activities_fact').upsert(row,{onConflict:'user_id,activity_id'}); if(error) throw error;
+      S.facts=S.facts.filter(x=>x.activity_id!==a.id).concat(row);
+    }
+    this.buildActivities();
   },
   async loadBoard(){ const {data}=await sb.from('leaderboard').select('*'); S.board=data||[]; }
 };
@@ -108,17 +132,21 @@ function totals(){
   return {xp,gold,st};
 }
 function lvlInfo(xp){ const l=lvl(xp), min=minXp(l), next=minXp(l+1); return {l,min,next,pct:Math.min(1,Math.max(0,(xp-min)/(next-min)))}; }
-function streak(name){
-  const days=new Set(S.journal.filter(e=>e.activity===name).map(e=>e.day));
+
+const sameActivity=(e,a)=>e.activity_id?e.activity_id===a.id:e.activity===a.name;
+function streak(a){
+  const days=new Set(S.journal.filter(e=>sameActivity(e,a)).map(e=>e.day));
   let d=today(); if(!days.has(d)) d=addDays(d,-1);
   let n=0; while(days.has(d)){ n++; d=addDays(d,-1); } return n;
 }
-const doneToday = a => S.journal.some(e=>e.day===today()&&e.activity===a.name);
+
+const doneToday = a => S.journal.some(e=>e.day===today()&&sameActivity(e,a));
 function buildEntry(a,qty,day){
-  const e={day,activity:a.name,qty,xp:a.xp*qty,gold:a.gold*qty,bonus_xp:0,skill:a.skill||null,stat:a.stat||null,stat_xp:(a.stat_xp||0)*qty};
-  if(a.daily) e.bonus_xp=Math.min(streak(a.name)+1,STREAK_CAP);
+  const e={day,activity_id:a.id,activity:a.name,qty,xp:a.xp*qty,gold:a.gold*qty,bonus_xp:0,skill:a.skill||null,stat:a.stat||null,stat_xp:(a.stat_xp||0)*qty};
+  if(a.daily&&day===today()&&!S.journal.some(x=>x.day===day&&sameActivity(x,a))) e.bonus_xp=Math.min(streak(a)+1,STREAK_CAP);
   return e;
 }
+
 async function logActivity(a,qty,day){
   const before=totals(); const e=buildEntry(a,qty,day);
   try{ await Store.addEntry(e); }catch(err){ toast('Erreur : '+(err.message||err)); return; }
@@ -145,8 +173,9 @@ const TABS=[['today','Aujourd\'hui'],['journal','Journal'],['hero','Héros'],['g
 function viewToday(){
   const t=totals(), L=lvlInfo(t.xp);
   const todayXp=S.journal.filter(e=>e.day===today()).reduce((s,e)=>s+e.xp+e.bonus_xp,0);
-  const quests=S.activities.filter(a=>a.active&&a.daily);
-  const others=S.activities.filter(a=>a.active&&!a.daily);
+  const byName=(x,y)=>x.name.localeCompare(y.name,'fr');
+  const quests=S.activities.filter(a=>a.active&&a.daily).sort(byName);
+  const others=S.activities.filter(a=>a.favorite).sort(byName);
   const doneN=quests.filter(doneToday).length;
   return `
   <header class="top"><div><h1>Salut ${esc(S.user.name)}</h1><div class="date">${(d=>d[0].toUpperCase()+d.slice(1))(new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}))}</div></div></header>
@@ -157,14 +186,14 @@ function viewToday(){
     <div class="foot num"><span>Aujourd'hui : +${todayXp} XP</span><span>Prochain niveau à ${L.next} XP</span></div>
   </section>
   <section class="section"><div class="row"><h2 class="grow">Quêtes du jour</h2><span class="pill num">${doneN}/${quests.length}</span></div>
-    <div class="list">${quests.length?quests.map(a=>{const d=doneToday(a),s=streak(a.name);
+    <div class="list">${quests.length?quests.map(a=>{const d=doneToday(a),s=streak(a);
       return `<button class="item quest ${d?'done':''}" data-act="quest" data-id="${a.id}" ${d?'aria-disabled="true"':''}>
         <span class="check" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
         <span class="grow"><span class="t">${esc(a.name)}</span><br><span class="s num">+${a.xp} XP${a.gold?` · +${a.gold} or`:''}${s?` · série ${s} j`:''}</span></span>
-        ${d?'<span class="pill">Fait</span>':`<span class="pill gold num">+${Math.min(s+1,STREAK_CAP)} bonus</span>`}</button>`}).join(''):'<div class="empty">Aucune quête quotidienne. Coche « Quotidienne » dans une activité pour en créer.</div>'}</div></section>
-  <section class="section"><h2>Activités</h2>
+        ${d?'<span class="pill">Fait</span>':`<span class="pill gold num">+${Math.min(s+1,STREAK_CAP)} bonus</span>`}</button>`}).join(''):'<div class="empty">Aucune quête quotidienne. Coche « Quotidien » dans une activité pour en créer.</div>'}</div></section>
+  <section class="section"><h2>Activités Favorites</h2>
     <div class="list">${others.map(a=>`<button class="item" data-act="log" data-id="${a.id}"><span class="ico" aria-hidden="true">${statIcon(a.stat)}</span>
-      <span class="grow"><span class="t">${esc(a.name)}</span><br><span class="s num">${a.stat?esc(a.stat)+' · ':''}+${a.xp} XP${a.gold?` · +${a.gold} or`:''}</span></span><span class="pill">Ajouter</span></button>`).join('')||'<div class="empty">Aucune activité active.</div>'}</div></section>`;
+      <span class="grow"><span class="t">${esc(a.name)}</span><br><span class="s num">${a.stat?esc(a.stat)+' · ':''}+${a.xp} XP${a.gold?` · +${a.gold} or`:''}</span></span><span class="pill">Ajouter</span></button>`).join('')||'<div class="empty">Aucune activité favorite <br /> Coche « Favori » dans une activité pour en créer</div>'}</div></section>`;
 }
 
 function viewJournal(){
@@ -213,13 +242,24 @@ function viewGuild(){
     <span class="pill num">+${r[key]||0} XP</span></div>`).join('')||'<div class="empty">Personne pour l\'instant.</div>'}</div>`;
 }
 
+function actRow(a){
+  return `<div class="item actrow"><span class="ico" aria-hidden="true">${statIcon(a.stat)}</span>
+    <span class="grow"><span class="t">${esc(a.name)}</span><br><span class="s num">+${a.xp} XP · +${a.gold} or${a.stat?` · ${a.stat_xp} pts ${esc(a.stat)}`:''}${a.created_by?' · créée par moi':''}</span></span>
+    ${a.created_by===S.user.id?`<button class="toggle edit" data-act="editact" data-id="${a.id}">Modifier</button>`:''}
+    <span class="toggles"><button class="toggle" data-act="fav" data-id="${a.id}" aria-pressed="${a.favorite}">Favori</button>
+    <button class="toggle" data-act="dly" data-id="${a.id}" aria-pressed="${a.daily}">Quotidien</button>
+    <button class="toggle add" data-act="log" data-id="${a.id}">Ajouter</button></span></div>`;
+}
+
 function viewActs(){
-  const list=[...S.activities].sort((a,b)=>(b.active-a.active)||a.name.localeCompare(b.name,'fr'));
+  const groups=[...STATS.map(s=>({key:s.n,icon:s.i,items:[]})),{key:'Autres',icon:'✨',items:[]}];
+  for(const a of S.activities) (groups.find(g=>g.key===a.stat)||groups[groups.length-1]).items.push(a);
+  groups.forEach(g=>g.items.sort((x,y)=>x.name.localeCompare(y.name,'fr')));
   return `<header class="top"><h1>Activités</h1></header>
   <button class="btn" data-act="newact">Nouvelle activité</button>
-  <div class="list">${list.map(a=>`<button class="item" data-act="editact" data-id="${a.id}" style="${a.active?'':'opacity:.55'}"><span class="ico" aria-hidden="true">${statIcon(a.stat)}</span>
-    <span class="grow"><span class="t">${esc(a.name)}</span><br><span class="s num">+${a.xp} XP · +${a.gold} or${a.stat?` · ${a.stat_xp} pts ${esc(a.stat)}`:''}</span></span>
-    ${a.daily?'<span class="pill">Quotidienne</span>':''}${a.active?'':'<span class="pill gold">Masquée</span>'}</button>`).join('')}</div>
+  <div class="list">${groups.filter(g=>g.items.length).map(g=>{ const open=S.openGroups.has(g.key); return `<section class="group">
+    <button class="ghead" data-act="grp" data-g="${esc(g.key)}" aria-expanded="${open}"><span aria-hidden="true">${g.icon}</span><span class="grow">${esc(g.key)}</span><span class="pill num">${g.items.length}</span><span class="chev" aria-hidden="true"></span></button>
+    ${open?`<div class="list">${g.items.map(actRow).join('')}</div>`:''}</section>`; }).join('')}</div>
   <section class="section"><h2>Données</h2>
     ${!S.journal.length&&SEED_HISTORY.length?'<button class="btn ghost" data-act="import">Importer l\'historique de mon Google Sheet</button>':''}
     <button class="btn ghost" data-act="signout">Se déconnecter</button>
@@ -237,6 +277,12 @@ function viewAuth(){
     <button class="btn ghost" type="button" data-act="authmode">${up?'J\'ai déjà un compte':'Créer un compte'}</button></form>`;
 }
 
+function rewardPills(level){
+  const d=S.difficulties.find(x=>x.level===level);
+  if(!d) return '<span class="muted">Choisis une difficulté</span>';
+  return `<span class="pill">+${d.xp} XP</span><span class="pill gold">+${d.gold} or</span><span class="pill">+${d.stat_xp} pts de stat</span>`;
+}
+
 function sheetHTML(){
   const sh=S.sheet; if(!sh) return '';
   let inner='';
@@ -252,12 +298,10 @@ function sheetHTML(){
     inner=`<h2>${a.id?'Modifier l\'activité':'Nouvelle activité'}</h2>
       <label class="f" for="e-name">Nom<input class="inp" id="e-name" value="${esc(a.name)}" maxlength="60"></label>
       <label class="f" for="e-stat">Statistique<select class="inp" id="e-stat"><option value="">Aucune</option>${STATS.map(s=>`<option ${a.stat===s.n?'selected':''}>${s.n}</option>`).join('')}</select></label>
-      <div class="grid2"><label class="f" for="e-xp">XP<input class="inp num" id="e-xp" type="number" inputmode="numeric" min="0" value="${a.xp}"></label>
-      <label class="f" for="e-gold">Or<input class="inp num" id="e-gold" type="number" inputmode="numeric" min="0" value="${a.gold}"></label>
-      <label class="f" for="e-sxp">Pts stat<input class="inp num" id="e-sxp" type="number" inputmode="numeric" min="0" value="${a.stat_xp}"></label></div>
-      <label class="f" for="e-skill">Compétence<input class="inp" id="e-skill" value="${esc(a.skill||'')}" maxlength="40"></label>
+      <div class="f">Difficulté<div class="seg" role="group" aria-label="Difficulté">${S.difficulties.map(d=>`<button type="button" data-act="diff" data-v="${d.level}" aria-pressed="${a.difficulty===d.level}">${esc(d.label)}</button>`).join('')}</div></div>
+      <div class="reward num">${rewardPills(a.difficulty)}</div>
       <label class="tog" for="e-daily"><input type="checkbox" id="e-daily" ${a.daily?'checked':''}>Quête quotidienne (avec série)</label>
-      <label class="tog" for="e-active"><input type="checkbox" id="e-active" ${a.active?'checked':''}>Active</label>
+      <label class="tog" for="e-fav"><input type="checkbox" id="e-fav" ${a.favorite?'checked':''}>Favorite</label>
       <div class="err" id="e-err" role="alert"></div>
       <button class="btn" data-act="saveact">Enregistrer</button>
       ${a.id?`<button class="btn danger ${S.confirmDel===a.id?'confirm':''}" data-act="delact">${S.confirmDel===a.id?'Confirmer la suppression':'Supprimer'}</button>`:''}
@@ -289,17 +333,31 @@ document.addEventListener('click', async ev=>{
   else if(act==='close'){ S.sheet=null; S.confirmDel=null; render(); }
   else if(act==='deluse'){ if(S.confirmDel===id){ S.confirmDel=null; try{ await Store.delEntry(id); if(S.cloud) Store.loadBoard().catch(()=>{}); }catch(e){ toast('Erreur : '+e.message);} } else S.confirmDel=id; render(); }
   else if(act==='board'){ S.boardMode=el.dataset.m; render(); }
-  else if(act==='newact'){ S.sheet={type:'edit',draft:{name:'',stat:'',xp:10,gold:1,skill:'',stat_xp:10,daily:false,active:true}}; render(); }
+  else if(act==='grp'){
+    const g=el.dataset.g;
+    if(S.openGroups.has(g)) S.openGroups.delete(g); else S.openGroups.add(g);
+    try{ localStorage.setItem('liferpg.open',JSON.stringify([...S.openGroups])); }catch(e){}
+    render();
+  }
+  else if(act==='fav'||act==='dly'){const a=A(); if(!a) return; const fav=act==='fav'?!a.favorite:a.favorite, dly=act==='dly'?!a.daily:a.daily; try{ await Store.setFlags(a,fav,dly); }catch(e){ toast('Erreur : '+e.message); }render(); }
+  else if(act==='newact'){ S.sheet={type:'edit',draft:{name:'',stat:'',difficulty:'moyen',favorite:true,daily:false}}; render(); }
   else if(act==='editact'){ S.sheet={type:'edit',draft:{...A()}}; render(); }
+  else if(act==='diff'){
+    const d=S.sheet.draft;
+    d.name=$('#e-name').value; d.stat=$('#e-stat').value||null; d.favorite=$('#e-fav').checked; d.daily=$('#e-daily').checked;
+    d.difficulty=el.dataset.v; render();
+  }
   else if(act==='saveact'){
     const d=S.sheet.draft, name=$('#e-name').value.trim(); if(!name){ $('#e-err').textContent='Donne un nom à l\'activité.'; return; }
     const n=i=>Math.max(0,parseInt($(i).value,10)||0);
-    const a={...d,name,stat:$('#e-stat').value||null,xp:n('#e-xp'),gold:n('#e-gold'),stat_xp:n('#e-sxp'),skill:$('#e-skill').value.trim(),daily:$('#e-daily').checked,active:$('#e-active').checked};
+    if(S.catalog.some(x=>x.id!==d.id&&x.name.toLowerCase()===name.toLowerCase())){ $('#e-err').textContent='Une activité porte déjà ce nom.'; return; }
+    if(!d.difficulty){ $('#e-err').textContent='Choisis une difficulté.'; return; }
+    const a={...d,name,stat:$('#e-stat').value||null,favorite:$('#e-fav').checked,daily:$('#e-daily').checked};
     try{ await Store.saveActivity(a); S.sheet=null; render(); toast('Activité enregistrée'); }catch(e){ $('#e-err').textContent=e.message; }
   }
   else if(act==='delact'){ if(S.confirmDel===S.sheet.draft.id){ try{ await Store.delActivity(S.sheet.draft.id); }catch(e){ toast(e.message);} S.sheet=null; S.confirmDel=null; } else S.confirmDel=S.sheet.draft.id; render(); }
   else if(act==='import'){ try{ await Store.importHistory(); await Store.loadBoard(); toast('Historique importé'); }catch(e){ toast('Erreur : '+e.message);} render(); }
-  else if(act==='signout'){ await sb.auth.signOut(); S.user=null; S.journal=[]; S.activities=[]; render(); }
+  else if(act==='signout'){ await sb.auth.signOut(); S.user=null; S.journal=[]; S.activities=[]; S.catalog=[]; S.allDim=[]; S.facts=[]; render(); }
   else if(act==='authmode'){ S.auth={mode:S.auth.mode==='in'?'up':'in',err:'',info:'',busy:false}; render(); }
 });
 document.addEventListener('change',ev=>{ if(ev.target.id==='s-day'&&S.sheet) S.sheet.day=ev.target.value; });

@@ -132,3 +132,14 @@ label.f{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:60
 .err{color:var(--danger);font-weight:600;font-size:14px}
 .ok-msg{color:var(--ok);font-weight:600;font-size:14px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.actrow{flex-wrap:wrap}
+.toggles{display:flex;gap:8px;width:100%;padding-left:42px}
+.toggle{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:99px;padding:8px 14px;min-height:40px;font-size:13px;font-weight:700}
+.toggle[aria-pressed="true"]{background:var(--xp);border-color:var(--xp);color:var(--on-xp)}
+.toggle.add{margin-left:auto;border-color:var(--xp);color:var(--xp)}
+
+.group{display:flex;flex-direction:column;gap:8px}
+.ghead{display:flex;align-items:center;gap:12px;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;min-height:52px;text-align:left;font-weight:700}
+.ghead .chev{width:10px;height:10px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .2s;margin:0 4px 3px 0}
+.ghead[aria-expanded="true"] .chev{transform:rotate(-135deg);margin-bottom:-3px}
