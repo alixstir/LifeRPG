@@ -143,3 +143,5 @@ label.f{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:60
 .ghead{display:flex;align-items:center;gap:12px;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;min-height:52px;text-align:left;font-weight:700}
 .ghead .chev{width:10px;height:10px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .2s;margin:0 4px 3px 0}
 .ghead[aria-expanded="true"] .chev{transform:rotate(-135deg);margin-bottom:-3px}
+
+.t .pill{margin-left:6px;vertical-align:1px}
